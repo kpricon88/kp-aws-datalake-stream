@@ -22,9 +22,16 @@ phases:
 
   build:
     commands:
+      - echo "Current working directory: $(pwd)"
+      - echo "Listing files:"
+      - ls -la
+      - echo "Searching for .tf files:"
+      - find . -name "*.tf"
       - echo "Switching to Terraform directory"
-      - cd infra                         
-      - ls -la                           
+      - cd infra  
+      - echo "In directory: $(pwd)"
+      - echo "Terraform files:"
+      - ls -la *.tf || echo "No .tf files found"
       - terraform init
       - terraform fmt -check
       - terraform plan -input=false
