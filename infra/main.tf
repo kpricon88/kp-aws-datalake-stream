@@ -386,12 +386,12 @@ resource "aws_lambda_function" "dlq_reprocessor" {
   }
 }
 
-resource "aws_lambda_event_source_mapping" "dlq_reprocessor_trigger" {
-  event_source_arn = aws_sqs_queue.lambda_dlq.arn
-  function_name    = aws_lambda_function.dlq_reprocessor.arn
-  enabled          = true
-  batch_size       = 5
-}
+#resource "aws_lambda_event_source_mapping" "dlq_reprocessor_trigger" {
+#  event_source_arn = aws_sqs_queue.lambda_dlq.arn
+#  function_name    = aws_lambda_function.dlq_reprocessor.arn
+#  enabled          = true
+#  batch_size       = 5
+#}
 
 resource "aws_iam_policy" "lambda_dlq_sqs_send" {
   name        = "LambdaDLQSendPolicy"
