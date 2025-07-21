@@ -1,0 +1,34 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      python: 3.9
+      # Add Terraform manually
+    commands:
+      - echo Installing Terraform...
+      - dnf install -y dnf-plugins-core
+      - dnf config-manager --add-repo https://rpm.releases.hashicorp.com/AmazonLinux/hashicorp.repo
+      - dnf install -y terraform
+
+  pre_build:
+    commands:
+      - echo "Zipping Lambda files..."
+      - mkdir -p lambda_zips
+      - zip lambda_zips/landing_to_cleansed.py.zip lambda/landing_to_cleansed.py
+      - zip lambda_zips/cleansed_to_golden.py.zip lambda/cleansed_to_golden.py
+      - zip lambda_zips/dynamo_stream_to_s3.py.zip lambda/dynamo_stream_to_s3.py
+      - zip lambda_zips/dynamo_ingest_lambda.py.zip lambda/dynamo_ingest_lambda.py
+      - zip lambda_zips/dlq_reprocessor.py.zip lambda/dlq_reprocessor.py
+
+  build:
+    commands:
+      - echo "Running Terraform Init"
+      - cd infra                   # 🔁 Change this to the folder where main.tf is
+      - terraform init
+      - echo "Terraform Apply"
+      - terraform apply -auto-approve
+
+artifacts:
+  files:
+    - '**/*'
