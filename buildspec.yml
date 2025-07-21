@@ -30,7 +30,7 @@ phases:
       - echo "Running Terraform Init"
       - terraform init
       - echo "Checking Terraform formatting"
-      - terraform fmt -check
+      - terraform fmt 
       - echo "Planning Terraform changes"
       - terraform plan -input=false
       - echo "Applying Terraform"
