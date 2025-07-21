@@ -25,16 +25,15 @@ phases:
       - echo "Current working directory: $(pwd)"
       - echo "Listing files:"
       - ls -la
-      - echo "Searching for .tf files:"
-      - find . -name "*.tf"
-      - echo "Switching to Terraform directory"
-      - cd infra  
-      - echo "In directory: $(pwd)"
-      - echo "Terraform files:"
-      - ls -la *.tf || echo "No .tf files found"
+      - echo "Changing into Terraform infra directory..."
+      - cd infra
+      - echo "Running Terraform Init"
       - terraform init
+      - echo "Checking Terraform formatting"
       - terraform fmt -check
+      - echo "Planning Terraform changes"
       - terraform plan -input=false
+      - echo "Applying Terraform"
       - terraform apply -auto-approve
 
 artifacts:
