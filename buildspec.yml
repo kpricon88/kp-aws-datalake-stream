@@ -22,12 +22,9 @@ phases:
 
   build:
     commands:
-      - echo "== Current Directory Structure =="
-      - pwd
-      - ls -R
-      - echo "Running Terraform from correct directory"
-      - cd infra                    # ⬅️ Change to the actual path of your main.tf
-      - ls -la                      # ✅ Confirm Terraform files exist
+      - echo "Switching to Terraform directory"
+      - cd infra                         
+      - ls -la                           
       - terraform init
       - terraform fmt -check
       - terraform plan -input=false
