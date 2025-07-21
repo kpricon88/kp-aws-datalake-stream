@@ -127,21 +127,21 @@ output "dynamodb_table_name" {
   value = aws_dynamodb_table.items.name
 }
 
-resource "aws_lambda_permission" "allow_s3_landing" {
-  statement_id  = "AllowExecutionFromS3Landing"
-  action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.landing_to_cleansed.function_name
-  principal     = "s3.amazonaws.com"
-  source_arn    = aws_s3_bucket.landing_zone.arn
-}
+#resource "aws_lambda_permission" "allow_s3_landing" {
+#  statement_id  = "AllowExecutionFromS3Landing"
+#  action        = "lambda:InvokeFunction"
+#  function_name = aws_lambda_function.landing_to_cleansed.function_name
+#  principal     = "s3.amazonaws.com"
+#  source_arn    = aws_s3_bucket.landing_zone.arn
+#}
 
-resource "aws_lambda_permission" "allow_s3_cleansed" {
-  statement_id  = "AllowExecutionFromS3Cleansed"
-  action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.cleansed_to_golden.function_name
-  principal     = "s3.amazonaws.com"
-  source_arn    = aws_s3_bucket.cleansed_zone.arn
-}
+#resource "aws_lambda_permission" "allow_s3_cleansed" {
+#  statement_id  = "AllowExecutionFromS3Cleansed"
+#  action        = "lambda:InvokeFunction"
+#  function_name = aws_lambda_function.cleansed_to_golden.function_name
+#  principal     = "s3.amazonaws.com"
+#  source_arn    = aws_s3_bucket.cleansed_zone.arn
+#}
 
 resource "aws_s3_bucket_notification" "landing_trigger" {
   bucket = aws_s3_bucket.landing_zone.id
@@ -151,7 +151,7 @@ resource "aws_s3_bucket_notification" "landing_trigger" {
     events              = ["s3:ObjectCreated:*"]
   }
 
-  depends_on = [aws_lambda_permission.allow_s3_landing]
+  #depends_on = [aws_lambda_permission.allow_s3_landing]
 }
 
 resource "aws_s3_bucket_notification" "cleansed_trigger" {
@@ -162,7 +162,7 @@ resource "aws_s3_bucket_notification" "cleansed_trigger" {
     events              = ["s3:ObjectCreated:*"]
   }
 
-  depends_on = [aws_lambda_permission.allow_s3_cleansed]
+  #depends_on = [aws_lambda_permission.allow_s3_cleansed]
 }
 
 resource "aws_lambda_function" "dynamo_ingest_lambda" {
@@ -191,13 +191,13 @@ resource "aws_cloudwatch_event_target" "invoke_ingest_lambda" {
   arn       = aws_lambda_function.dynamo_ingest_lambda.arn
 }
 
-resource "aws_lambda_permission" "allow_eventbridge_ingest" {
-  statement_id  = "AllowExecutionFromEventBridge"
-  action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.dynamo_ingest_lambda.function_name
-  principal     = "events.amazonaws.com"
-  source_arn    = aws_cloudwatch_event_rule.ingest_schedule.arn
-}
+#resource "aws_lambda_permission" "allow_eventbridge_ingest" {
+#  statement_id  = "AllowExecutionFromEventBridge"
+#  action        = "lambda:InvokeFunction"
+#  function_name = aws_lambda_function.dynamo_ingest_lambda.function_name
+#  principal     = "events.amazonaws.com"
+#  source_arn    = aws_cloudwatch_event_rule.ingest_schedule.arn
+#}
 
 resource "aws_lambda_event_source_mapping" "dynamo_to_landing" {
   event_source_arn  = aws_dynamodb_table.items.stream_arn
