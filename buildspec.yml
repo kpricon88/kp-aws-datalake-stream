@@ -4,9 +4,8 @@ phases:
   install:
     runtime-versions:
       python: 3.9
-      # Add Terraform manually
     commands:
-      - echo Installing Terraform...
+      - echo "Installing Terraform..."
       - dnf install -y dnf-plugins-core
       - dnf config-manager --add-repo https://rpm.releases.hashicorp.com/AmazonLinux/hashicorp.repo
       - dnf install -y terraform
@@ -23,10 +22,15 @@ phases:
 
   build:
     commands:
-      - echo "Running Terraform Init"
-      - cd infra                   # 🔁 Change this to the folder where main.tf is
+      - echo "== Current Directory Structure =="
+      - pwd
+      - ls -R
+      - echo "Running Terraform from correct directory"
+      - cd infra                    # ⬅️ Change to the actual path of your main.tf
+      - ls -la                      # ✅ Confirm Terraform files exist
       - terraform init
-      - echo "Terraform Apply"
+      - terraform fmt -check
+      - terraform plan -input=false
       - terraform apply -auto-approve
 
 artifacts:
