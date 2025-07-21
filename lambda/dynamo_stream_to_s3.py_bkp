@@ -1,0 +1,34 @@
+import boto3
+import json
+import os
+from datetime import datetime
+
+s3 = boto3.client('s3')
+DEST_BUCKET = os.environ['DEST_BUCKET']  # From environment variable
+
+def lambda_handler(event, context):
+    print("Received event:", json.dumps(event, indent=2))
+
+    for record in event['Records']:
+        event_name = record['eventName']
+        if event_name in ['INSERT', 'MODIFY']:
+            print(f"Processing {event_name} event")
+
+            new_image = record['dynamodb']['NewImage']
+            item = {k: list(v.values())[0] for k, v in new_image.items()}
+
+            now = datetime.utcnow()
+            partition_path = f"{now.year}/{now.month:02}/{now.day:02}"
+            object_key = f"{partition_path}/{item['id']}.json"
+
+            print(f"Writing to S3: s3://{DEST_BUCKET}/{object_key}")
+            s3.put_object(
+                Bucket=DEST_BUCKET,
+                Key=object_key,
+                Body=json.dumps(item),
+                ContentType='application/json'
+            )
+        else:
+            print(f"Skipping event type: {event_name}")
+
+    return {"status": "done"}

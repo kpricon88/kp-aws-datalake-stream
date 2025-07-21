@@ -1,0 +1,48 @@
+import boto3
+import json
+import os
+from collections import defaultdict
+from datetime import datetime
+
+s3 = boto3.client('s3')
+
+def lambda_handler(event, context):
+    agg_data = defaultdict(list)
+
+    for record in event['Records']:
+        bucket = record['s3']['bucket']['name']
+        key = record['s3']['object']['key']
+
+        print(f"Processing file: s3://{bucket}/{key}")
+        response = s3.get_object(Bucket=bucket, Key=key)
+        data = json.loads(response['Body'].read().decode('utf-8'))
+
+        email = data.get('email')
+        if email:
+            agg_data[email].append(data)
+
+    # Aggregate and store per email under partitioned folders
+    now = datetime.utcnow()
+    partition_path = f"{now.year}/{now.month:02}/{now.day:02}"
+
+    for email, entries in agg_data.items():
+        safe_email = email.replace("@", "_at_").replace(".", "_")  # for valid key
+        golden_key = f"{partition_path}/{safe_email}/summary.json"
+        
+        summary = {
+            "email": email,
+            "record_count": len(entries),
+            "names": list({entry["name"] for entry in entries}),
+            "ingested_at_list": [entry["ingested_at"] for entry in entries]
+        }
+
+        print(f"Writing aggregated data for {email} to {golden_key}")
+
+        s3.put_object(
+            Bucket=os.environ['GOLDEN_BUCKET'],
+            Key=golden_key,
+            Body=json.dumps(summary),
+            ContentType='application/json'
+        )
+
+    return {"status": "aggregated to golden"}
