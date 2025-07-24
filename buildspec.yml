@@ -9,6 +9,8 @@ phases:
       - yum install -y yum-utils
       - yum-config-manager --add-repo https://rpm.releases.hashicorp.com/AmazonLinux/hashicorp.repo
       - yum install -y terraform
+      - echo "Installing Python dependencies..."
+      - pip install -r requirements.txt
 
   pre_build:
     commands:
@@ -34,6 +36,12 @@ phases:
       - terraform plan -input=false
       - echo "Applying Terraform"
       - terraform apply -auto-approve
+      - cd ..
+      
+  post_build:
+    commands:
+      - echo "Running pytest test cases..."
+      - pytest tests/test_pipeline.py
 
 artifacts:
   files:
