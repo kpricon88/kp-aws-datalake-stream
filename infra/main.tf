@@ -59,8 +59,8 @@ resource "aws_iam_role_policy_attachment" "lambda_basic_exec" {
 
 
 resource "aws_sqs_queue" "lambda_dlq" {
-  name = "lambda-dlq-queue"
-  visibility_timeout_seconds = 70 
+  name                       = "lambda-dlq-queue"
+  visibility_timeout_seconds = 70
 }
 
 
@@ -457,5 +457,145 @@ resource "aws_dynamodb_table" "items_audit" {
   tags = {
     Environment = "prod"
     Purpose     = "audit-log"
+  }
+}
+
+
+
+
+resource "aws_glue_catalog_database" "data_lake" {
+  name = "kp_datalake"
+}
+
+# IAM Role for Glue
+resource "aws_iam_role" "glue_service_role" {
+  name = "glue_service_role"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [{
+      Action = "sts:AssumeRole",
+      Effect = "Allow",
+      Principal = {
+        Service = "glue.amazonaws.com"
+      }
+    }]
+  })
+}
+
+# Custom IAM Policy for Glue (updated to allow access to actual S3 buckets)
+resource "aws_iam_policy" "glue_full_access" {
+  name = "GlueFullAccessPolicy"
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect = "Allow",
+        Action = [
+          "glue:*"
+        ],
+        Resource = "*"
+      },
+      {
+        Effect   = "Allow",
+        Action   = "iam:PassRole",
+        Resource = aws_iam_role.glue_service_role.arn
+      },
+      {
+        Effect = "Allow",
+        Action = [
+          "s3:ListBucket",
+          "s3:GetBucketLocation"
+        ],
+        Resource = [
+          "arn:aws:s3:::${aws_s3_bucket.landing_zone.bucket}",
+          "arn:aws:s3:::${aws_s3_bucket.cleansed_zone.bucket}",
+          "arn:aws:s3:::${aws_s3_bucket.golden_zone.bucket}"
+        ]
+      },
+      {
+        Effect = "Allow",
+        Action = [
+          "s3:GetObject",
+          "s3:PutObject",
+          "s3:DeleteObject"
+        ],
+        Resource = [
+          "arn:aws:s3:::${aws_s3_bucket.landing_zone.bucket}/*",
+          "arn:aws:s3:::${aws_s3_bucket.cleansed_zone.bucket}/*",
+          "arn:aws:s3:::${aws_s3_bucket.golden_zone.bucket}/*"
+        ]
+      }
+    ]
+  })
+}
+
+# Attach the custom policy to the Glue role
+resource "aws_iam_role_policy_attachment" "glue_full_access_attach" {
+  role       = aws_iam_role.glue_service_role.name
+  policy_arn = aws_iam_policy.glue_full_access.arn
+}
+
+# Also attach the required AWS Glue service role
+resource "aws_iam_role_policy_attachment" "glue_service_access" {
+  role       = aws_iam_role.glue_service_role.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSGlueServiceRole"
+}
+
+# Crawler for landing zone
+resource "aws_glue_crawler" "landing_zone" {
+  name          = "crawler-landing"
+  role          = aws_iam_role.glue_service_role.arn
+  database_name = aws_glue_catalog_database.data_lake.name
+  table_prefix  = "landing_"
+
+  s3_target {
+    path = "s3://${aws_s3_bucket.landing_zone.bucket}/"
+  }
+
+  configuration = jsonencode({
+    Version = 1.0,
+    CrawlerOutput = {
+      Partitions = { AddOrUpdateBehavior = "InheritFromTable" }
+    }
+  })
+
+  schedule = "cron(0/15 * * * ? *)"
+}
+
+# Crawler for cleansed zone
+resource "aws_glue_crawler" "cleansed_zone" {
+  name          = "crawler-cleansed"
+  role          = aws_iam_role.glue_service_role.arn
+  database_name = aws_glue_catalog_database.data_lake.name
+  table_prefix  = "cleansed_"
+
+  s3_target {
+    path = "s3://${aws_s3_bucket.cleansed_zone.bucket}/"
+  }
+
+  schedule = "cron(5/15 * * * ? *)"
+}
+
+# Crawler for golden zone
+resource "aws_glue_crawler" "golden_zone" {
+  name          = "crawler-golden"
+  role          = aws_iam_role.glue_service_role.arn
+  database_name = aws_glue_catalog_database.data_lake.name
+  table_prefix  = "golden_"
+
+  s3_target {
+    path = "s3://${aws_s3_bucket.golden_zone.bucket}/"
+  }
+
+  schedule = "cron(10/15 * * * ? *)"
+}
+
+# Athena Workgroup
+resource "aws_athena_workgroup" "datalake" {
+  name = "kp_datalake_workgroup"
+  configuration {
+    result_configuration {
+      output_location = "s3://${aws_s3_bucket.golden_zone.bucket}/athena-results/"
+    }
   }
 }
