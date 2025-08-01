@@ -1,4 +1,3 @@
-# test_pipeline.py
 import boto3
 import json
 import time
@@ -19,15 +18,19 @@ dql_queue_url = "https://sqs.us-east-1.amazonaws.com/692859950441/lambda-dlq-que
 
 # ========== HELPERS ==========
 def put_test_record():
+    """Insert a valid record matching the DynamoDB table schema."""
+    raw_event = {
+        "page": "home",
+        "action": "view",
+        "eventType": "click"
+    }
     item = {
-        'PK': {'S': 'user#001'},
-        'SK': {'S': 'session#2025072401'},
-        'eventType': {'S': 'click'},
-        'timestamp': {'S': str(int(time.time()))},
-        'details': {'S': json.dumps({"page": "home", "action": "view"})}
+        'id': {'S': 'user#001'},
+        'srt_ky': {'S': f'session#{int(time.time())}'},
+        'raw_data': {'S': json.dumps(raw_event)}
     }
     dynamo.put_item(TableName=dynamo_table_name, Item=item)
-    return item['PK']['S'], item['SK']['S']
+    return item['id']['S'], item['srt_ky']['S']
 
 def get_latest_s3_object(bucket_name):
     response = s3.list_objects_v2(Bucket=bucket_name)
@@ -37,10 +40,9 @@ def get_latest_s3_object(bucket_name):
     return None
 
 # ========== TESTS ==========
-
 def test_pipeline_execution():
     # Step 1: Put test record into DynamoDB
-    pk, sk = put_test_record()
+    record_id, sort_key = put_test_record()
 
     # Step 2: Wait for the pipeline to process
     time.sleep(60)  # Allow Lambda triggers to complete
@@ -49,25 +51,24 @@ def test_pipeline_execution():
     landing_file = get_latest_s3_object(s3_landing_bucket)
     assert landing_file is not None, "Landing file not found in S3"
     landing_data = landing_file["Body"].read().decode("utf-8")
-    assert pk in landing_data, "PK missing in landing zone file"
+    assert record_id in landing_data, "Record ID missing in landing zone file"
 
     # Step 4: Check Cleansed bucket
     cleansed_file = get_latest_s3_object(s3_cleansed_bucket)
     assert cleansed_file is not None, "Cleansed file not found"
     cleansed_data = cleansed_file["Body"].read().decode("utf-8")
-    assert pk in cleansed_data, "PK missing in cleansed zone file"
+    assert record_id in cleansed_data, "Record ID missing in cleansed zone file"
 
     # Step 5: Check Golden bucket
     golden_file = get_latest_s3_object(s3_golden_bucket)
     assert golden_file is not None, "Golden file not found"
     golden_data = golden_file["Body"].read().decode("utf-8")
-    assert pk in golden_data, "PK missing in golden zone file"
-
+    assert record_id in golden_data, "Record ID missing in golden zone file"
 
 def test_dlq_error_flow():
-    # Send a malformed record to Dynamo (simulate failure)
+    """Send a malformed record to trigger DLQ."""
     malformed_item = {
-        'PK': {'S': 'bad#record'},  # Missing SK or other attributes
+        'id': {'S': 'bad#record'}  # Missing required 'srt_ky'
     }
     dynamo.put_item(TableName=dynamo_table_name, Item=malformed_item)
 
@@ -81,7 +82,6 @@ def test_dlq_error_flow():
     
     # Optional cleanup: Delete DLQ message
     sqs.delete_message(QueueUrl=dql_queue_url, ReceiptHandle=dlq_message["ReceiptHandle"])
-
 
 if __name__ == "__main__":
     pytest.main(["-v", "test_pipeline.py"])
