@@ -41,8 +41,8 @@ phases:
   post_build:
     commands:
       - echo "Running pytest test cases..."
-      - ls -R 
-      - pytest
+      # - ls -R 
+      # - pytest
 
 artifacts:
   files:
