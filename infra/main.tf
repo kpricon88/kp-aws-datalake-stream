@@ -530,16 +530,16 @@ resource "aws_iam_policy" "glue_full_access" {
 }
 
 # Attach the custom policy to the Glue role
-resource "aws_iam_role_policy_attachment" "glue_full_access_attach" {
-  role       = aws_iam_role.glue_service_role.name
-  policy_arn = aws_iam_policy.glue_full_access.arn
-}
+# resource "aws_iam_role_policy_attachment" "glue_full_access_attach" {
+#   role       = aws_iam_role.glue_service_role.name
+#   policy_arn = aws_iam_policy.glue_full_access.arn
+# }
 
 # Also attach the required AWS Glue service role
-resource "aws_iam_role_policy_attachment" "glue_service_access" {
-  role       = aws_iam_role.glue_service_role.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSGlueServiceRole"
-}
+# resource "aws_iam_role_policy_attachment" "glue_service_access" {
+#   role       = aws_iam_role.glue_service_role.name
+#   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSGlueServiceRole"
+# }
 
 # Crawler for landing zone
 resource "aws_glue_crawler" "landing_zone" {
