@@ -18,19 +18,20 @@ dql_queue_url = "https://sqs.us-east-1.amazonaws.com/692859950441/lambda-dlq-que
 
 # ========== HELPERS ==========
 def put_test_record():
-    """Insert a valid record matching the DynamoDB table schema."""
-    raw_event = {
-        "page": "home",
-        "action": "view",
-        "eventType": "click"
-    }
+    """Insert a valid and traceable record into DynamoDB."""
+    unique_id = f"user#{int(time.time())}"
     item = {
-        'id': {'S': 'user#001'},
+        'id': {'S': unique_id},
         'srt_ky': {'S': f'session#{int(time.time())}'},
-        'raw_data': {'S': json.dumps(raw_event)}
+        'raw_data': {'S': json.dumps({
+            "test_id": unique_id,
+            "page": "home",
+            "action": "view",
+            "eventType": "click"
+        })}
     }
     dynamo.put_item(TableName=dynamo_table_name, Item=item)
-    return item['id']['S'], item['srt_ky']['S']
+    return unique_id
 
 def get_latest_s3_object(bucket_name):
     response = s3.list_objects_v2(Bucket=bucket_name)
@@ -40,12 +41,13 @@ def get_latest_s3_object(bucket_name):
     return None
 
 # ========== TESTS ==========
+
 def test_pipeline_execution():
     # Step 1: Put test record into DynamoDB
-    record_id, sort_key = put_test_record()
+    record_id = put_test_record()
 
     # Step 2: Wait for the pipeline to process
-    time.sleep(60)  # Allow Lambda triggers to complete
+    time.sleep(60)  # Allow Lambda and Glue to run
 
     # Step 3: Check S3 landing bucket
     landing_file = get_latest_s3_object(s3_landing_bucket)
@@ -66,22 +68,25 @@ def test_pipeline_execution():
     assert record_id in golden_data, "Record ID missing in golden zone file"
 
 def test_dlq_error_flow():
-    """Send a malformed record to trigger DLQ."""
+    """Send a syntactically valid but semantically invalid record to trigger DLQ."""
     malformed_item = {
-        'id': {'S': 'bad#record'}  # Missing required 'srt_ky'
+        'id': {'S': 'bad#record'},
+        'srt_ky': {'S': 'bad#sortkey'},
+        'raw_data': {'S': 'INVALID_JSON_STRING'}  # Intentionally bad payload
     }
     dynamo.put_item(TableName=dynamo_table_name, Item=malformed_item)
 
-    time.sleep(60)  # Wait for retries and DLQ processing
+    time.sleep(60)  # Wait for retries and DLQ routing
 
-    # Validate that DLQ has a message
+    # Check DLQ for message
     response = sqs.receive_message(QueueUrl=dql_queue_url, MaxNumberOfMessages=1)
     assert "Messages" in response, "No message found in DLQ"
     dlq_message = response["Messages"][0]
     assert "bad#record" in dlq_message["Body"], "Malformed record not found in DLQ"
-    
-    # Optional cleanup: Delete DLQ message
+
+    # Optional cleanup
     sqs.delete_message(QueueUrl=dql_queue_url, ReceiptHandle=dlq_message["ReceiptHandle"])
 
+# ========== ENTRY POINT ==========
 if __name__ == "__main__":
     pytest.main(["-v", "test_pipeline.py"])
