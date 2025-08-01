@@ -10,6 +10,5 @@ def lambda_handler(event, context):
         try:
             payload = json.loads(record['body'])
             logger.error("Processing DLQ record: %s", json.dumps(payload))
-            # Optionally retry original logic here
         except Exception as e:
             logger.exception(f"Failed to process DLQ record: {str(e)}")
