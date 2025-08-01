@@ -65,7 +65,7 @@ resource "aws_sqs_queue" "lambda_dlq" {
 
 
 resource "aws_lambda_function" "dynamo_stream_handler" {
-  filename      = "${path.module}/../dynamo_stream_to_s3.zip"
+  filename      = "${path.module}/../lambda/dynamo_stream_to_s3.py.zip"
   function_name = "DynamoStreamToS3"
   role          = aws_iam_role.lambda_exec_role.arn
   handler       = "dynamo_stream_to_s3.lambda_handler"
@@ -82,15 +82,15 @@ resource "aws_lambda_function" "dynamo_stream_handler" {
     target_arn = aws_sqs_queue.lambda_dlq.arn
   }
 
-  source_code_hash = filebase64sha256("${path.module}/../dynamo_stream_to_s3.zip")
+  source_code_hash = filebase64sha256("${path.module}/../lambda/dynamo_stream_to_s3.py.zip")
 }
 
 resource "aws_lambda_function" "landing_to_cleansed" {
   function_name    = "LandingToCleansed"
   handler          = "landing_to_cleansed.lambda_handler"
   runtime          = "python3.9"
-  filename         = "./../landing_to_cleansed.zip"
-  source_code_hash = filebase64sha256("./../landing_to_cleansed.zip")
+  filename         = "./../lambda/landing_to_cleansed.py.zip"
+  source_code_hash = filebase64sha256("./../lambda/landing_to_cleansed.py.zip")
   role             = aws_iam_role.lambda_exec_role.arn
   timeout          = 3
   environment {
@@ -108,8 +108,8 @@ resource "aws_lambda_function" "cleansed_to_golden" {
   function_name    = "CleansedToGolden"
   handler          = "cleansed_to_golden.lambda_handler"
   runtime          = "python3.9"
-  filename         = "./../cleansed_to_golden.zip"
-  source_code_hash = filebase64sha256("./../cleansed_to_golden.zip")
+  filename         = "./../lambda/cleansed_to_golden.py.zip"
+  source_code_hash = filebase64sha256("./../lambda/cleansed_to_golden.py.zip")
   role             = aws_iam_role.lambda_exec_role.arn
   timeout          = 3
   environment {
@@ -169,8 +169,8 @@ resource "aws_lambda_function" "dynamo_ingest_lambda" {
   function_name    = "ScheduledDynamoIngest"
   handler          = "dynamo_ingest_lambda.lambda_handler"
   runtime          = "python3.9"
-  filename         = "${path.module}/../dynamo_ingest_lambda.zip"
-  source_code_hash = filebase64sha256("${path.module}/../dynamo_ingest_lambda.zip")
+  filename         = "${path.module}/../lambda/dynamo_ingest_lambda.py.zip"
+  source_code_hash = filebase64sha256("${path.module}/../lambda/dynamo_ingest_lambda.py.zip")
   role             = aws_iam_role.lambda_exec_role.arn
   timeout          = 5
   environment {
@@ -372,7 +372,7 @@ resource "aws_cloudwatch_metric_alarm" "lambda_dynamo_stream_errors" {
 
 resource "aws_lambda_function" "dlq_reprocessor" {
   function_name = "lambda_dlq_reprocessor"
-  filename      = "${path.module}/../dlq_reprocessor.zip"
+  filename      = "${path.module}/../lambda/dlq_reprocessor.py.zip"
   handler       = "dlq_reprocessor.lambda_handler"
   runtime       = "python3.9"
   timeout       = 60
@@ -530,16 +530,16 @@ resource "aws_iam_policy" "glue_full_access" {
 }
 
 # Attach the custom policy to the Glue role
- resource "aws_iam_role_policy_attachment" "glue_full_access_attach" {
-   role       = aws_iam_role.glue_service_role.name
-   policy_arn = aws_iam_policy.glue_full_access.arn
- }
+resource "aws_iam_role_policy_attachment" "glue_full_access_attach" {
+  role       = aws_iam_role.glue_service_role.name
+  policy_arn = aws_iam_policy.glue_full_access.arn
+}
 
- #Also attach the required AWS Glue service role
- resource "aws_iam_role_policy_attachment" "glue_service_access" {
-   role       = aws_iam_role.glue_service_role.name
-   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSGlueServiceRole"
- }
+# Also attach the required AWS Glue service role
+resource "aws_iam_role_policy_attachment" "glue_service_access" {
+  role       = aws_iam_role.glue_service_role.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSGlueServiceRole"
+}
 
 # Crawler for landing zone
 resource "aws_glue_crawler" "landing_zone" {
