@@ -468,8 +468,8 @@ resource "aws_glue_catalog_database" "data_lake" {
 }
 
 # IAM Role for Glue
-resource "aws_iam_role" "glue_service_role1" {
-  name = "glue_service_role1"
+resource "aws_iam_role" "glue_service_role" {
+  name = "glue_service_role"
   assume_role_policy = jsonencode({
     Version = "2012-10-17",
     Statement = [{
@@ -498,7 +498,7 @@ resource "aws_iam_policy" "glue_full_access" {
       {
         Effect   = "Allow",
         Action   = "iam:PassRole",
-        Resource = aws_iam_role.glue_service_role1.arn
+        Resource = aws_iam_role.glue_service_role.arn
       },
       {
         Effect = "Allow",
@@ -531,20 +531,20 @@ resource "aws_iam_policy" "glue_full_access" {
 
 # Attach the custom policy to the Glue role
  resource "aws_iam_role_policy_attachment" "glue_full_access_attach" {
-   role       = aws_iam_role.glue_service_role1.name
+   role       = aws_iam_role.glue_service_role.name
    policy_arn = aws_iam_policy.glue_full_access.arn
  }
 
  #Also attach the required AWS Glue service role
  resource "aws_iam_role_policy_attachment" "glue_service_access" {
-   role       = aws_iam_role.glue_service_role1.name
+   role       = aws_iam_role.glue_service_role.name
    policy_arn = "arn:aws:iam::aws:policy/service-role/AWSGlueServiceRole"
  }
 
 # Crawler for landing zone
 resource "aws_glue_crawler" "landing_zone" {
   name          = "crawler-landing"
-  role          = aws_iam_role.glue_service_role1.arn
+  role          = aws_iam_role.glue_service_role.arn
   database_name = aws_glue_catalog_database.data_lake.name
   table_prefix  = "landing_"
 
@@ -565,7 +565,7 @@ resource "aws_glue_crawler" "landing_zone" {
 # Crawler for cleansed zone
 resource "aws_glue_crawler" "cleansed_zone" {
   name          = "crawler-cleansed"
-  role          = aws_iam_role.glue_service_role1.arn
+  role          = aws_iam_role.glue_service_role.arn
   database_name = aws_glue_catalog_database.data_lake.name
   table_prefix  = "cleansed_"
 
@@ -579,7 +579,7 @@ resource "aws_glue_crawler" "cleansed_zone" {
 # Crawler for golden zone
 resource "aws_glue_crawler" "golden_zone" {
   name          = "crawler-golden"
-  role          = aws_iam_role.glue_service_role1.arn
+  role          = aws_iam_role.glue_service_role.arn
   database_name = aws_glue_catalog_database.data_lake.name
   table_prefix  = "golden_"
 
