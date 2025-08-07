@@ -11,5 +11,16 @@ resource "aws_s3_bucket" "cleansed_zone" {
 resource "aws_s3_bucket" "golden_zone" {
   bucket        = "s3-golden-bucket-kp-dev"
   force_destroy = true
-  region        = "us-east-1"
+}
+
+output "landing_bucket" {
+  value = aws_s3_bucket.landing_zone.bucket
+}
+
+output "cleansed_bucket" {
+  value = aws_s3_bucket.cleansed_zone.bucket
+}
+
+output "golden_bucket" {
+  value = aws_s3_bucket.golden_zone.bucket
 }

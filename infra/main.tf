@@ -27,6 +27,7 @@ module "iam" {
 
 module "lambda" {
   source = "./modules/lambda"
+  packages_path  = "${path.root}/../packages"
 }
 
 module "glue" {
@@ -36,3 +37,4 @@ module "glue" {
 module "athena" {
   source = "./modules/athena"
 }
+

@@ -3,8 +3,8 @@ resource "aws_lambda_function" "dynamo_ingest" {
   function_name = "ScheduledDynamoIngest"
   handler       = "handler.lambda_handler"
   runtime       = "python3.9"
-  filename      = "${path.module}/../../../packages/dynamo_ingest.zip"
-  source_code_hash = filebase64sha256("${path.module}/../../../packages/dynamo_ingest.zip")
+  filename         = "${var.packages_path}/dynamo_ingest.zip"
+  source_code_hash = filebase64sha256("${var.packages_path}/dynamo_ingest.zip")
   role          = "arn:aws:iam::123456789012:role/lambda_exec_role"
   timeout       = 5
 
@@ -19,8 +19,8 @@ resource "aws_lambda_function" "dynamo_stream_handler" {
   function_name = "DynamoStreamToS3"
   handler       = "handler.lambda_handler"
   runtime       = "python3.9"
-  filename      = "${path.module}/../../../packages/dynamo_stream.zip"
-  source_code_hash = filebase64sha256("${path.module}/../../../packages/dynamo_stream.zip")
+  filename      = "${var.packages_path}/dynamo_stream.zip"
+  source_code_hash = filebase64sha256("${var.packages_path}/dynamo_stream.zip")
   role          = "arn:aws:iam::123456789012:role/lambda_exec_role"
   timeout       = 5
 
@@ -35,8 +35,8 @@ resource "aws_lambda_function" "landing_to_cleansed" {
   function_name = "LandingToCleansed"
   handler       = "handler.lambda_handler"
   runtime       = "python3.9"
-  filename      = "${path.module}/../../../packages/landing_to_cleansed.zip"
-  source_code_hash = filebase64sha256("${path.module}/../../../packages/landing_to_cleansed.zip")
+  filename      = "${var.packages_path}/landing_to_cleansed.zip"
+  source_code_hash = filebase64sha256("${var.packages_path}/landing_to_cleansed.zip")
   role          = "arn:aws:iam::123456789012:role/lambda_exec_role"
   timeout       = 3
 
@@ -51,8 +51,8 @@ resource "aws_lambda_function" "cleansed_to_golden" {
   function_name = "CleansedToGolden"
   handler       = "handler.lambda_handler"
   runtime       = "python3.9"
-  filename      = "${path.module}/../../../packages/cleansed_to_golden.zip"
-  source_code_hash = filebase64sha256("${path.module}/../../../packages/cleansed_to_golden.zip")
+  filename      = "${var.packages_path}/cleansed_to_golden.zip"
+  source_code_hash =filebase64sha256("${var.packages_path}/cleansed_to_golden.zip")
   role          = "arn:aws:iam::123456789012:role/lambda_exec_role"
   timeout       = 3
 
@@ -67,8 +67,8 @@ resource "aws_lambda_function" "dlq_reprocessor" {
   function_name = "lambda_dlq_reprocessor"
   handler       = "handler.lambda_handler"
   runtime       = "python3.9"
-  filename      = "${path.module}/../../../packages/dlq_reprocessor.zip"
-  source_code_hash = filebase64sha256("${path.module}/../../../packages/dlq_reprocessor.zip")
+  filename      = "${var.packages_path}/dlq_reprocessor.zip"
+  source_code_hash =filebase64sha256("${var.packages_path}/dlq_reprocessor.zip")
   role          = "arn:aws:iam::123456789012:role/lambda_exec_role"
   timeout       = 60
   memory_size   = 256

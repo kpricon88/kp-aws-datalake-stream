@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-cd lambdas
+cd ../lambdas
 for dir in */ ; do
   cd "$dir"
   zip -r "../../packages/${dir%/}.zip" .
