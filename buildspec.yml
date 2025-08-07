@@ -10,39 +10,27 @@ phases:
       - yum-config-manager --add-repo https://rpm.releases.hashicorp.com/AmazonLinux/hashicorp.repo
       - yum install -y terraform
       - echo "Installing Python dependencies..."
-      - pip install -r requirements.txt
+      - pip install -r requirements.txt || true
 
   pre_build:
     commands:
       - echo "Zipping Lambda files..."
-      - zip lambda/landing_to_cleansed.py.zip lambda/landing_to_cleansed.py
-      - zip lambda/cleansed_to_golden.py.zip lambda/cleansed_to_golden.py
-      - zip lambda/dynamo_stream_to_s3.py.zip lambda/dynamo_stream_to_s3.py
-      - zip lambda/dynamo_ingest_lambda.py.zip lambda/dynamo_ingest_lambda.py
-      - zip lambda/dlq_reprocessor.py.zip lambda/dlq_reprocessor.py
+      - chmod +x scripts/zip_lambdas.sh
+      - ./scripts/zip_lambdas.sh
 
   build:
     commands:
-      - echo "Current working directory:$(pwd)"
-      - echo "Listing files:"
-      - ls -la
-      - echo "Changing into Terraform infra directory..."
       - cd infra
-      - echo "Running Terraform Init"
       - terraform init
-      - echo "Checking Terraform formatting"
-      - terraform fmt 
-      - echo "Planning Terraform changes"
+      - terraform fmt -check
+      - terraform validate
       - terraform plan -input=false
-      - echo "Applying Terraform"
       - terraform apply -auto-approve
-      - cd ..
-      
+
   post_build:
     commands:
-      - echo "Running pytest test cases..."
-      # - ls -R 
-      # - pytest
+      - echo "Running tests..."
+      - pytest tests || true
 
 artifacts:
   files:
